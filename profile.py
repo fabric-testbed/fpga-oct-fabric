@@ -33,6 +33,8 @@ clusters = [
 imageList = [('urn:publicid:IDN+emulab.net+image+emulab-ops//UBUNTU20-64-STD', 'UBUNTU 20.04'),
              ('urn:publicid:IDN+emulab.net+image+emulab-ops//UBUNTU22-64-STD', 'UBUNTU 22.04')] 
 
+workflow = ['Vitis', 'Vivado']
+
 # Pick the appropriate tool version
 toolVersion = ['2023.1', '2023.2'] 
                    
@@ -45,6 +47,11 @@ pc.defineParameter("cluster", "Select Cluster",
                    clusters[0], clusters,
                    longDescription="Select a cluster")
 
+pc.defineParameter("workflow", "Workflow",
+                   portal.ParameterType.STRING,
+                   workflow[0], workflow,
+                   longDescription="For Vitis application acceleration workflow, select Vitis. For traditional workflow, select Vivado.")   
+
 pc.defineParameter("toolVersion", "Tool Version",
                    portal.ParameterType.STRING,
                    toolVersion[0], toolVersion,
@@ -54,6 +61,11 @@ pc.defineParameter("osImage", "Select Image",
                    portal.ParameterType.IMAGE,
                    imageList[0], imageList,
                    longDescription="Supported operating systems are Ubuntu and CentOS.")
+
+pc.defineParameter("remoteDesktop", "Remote Desktop Access",
+                   portal.ParameterType.BOOLEAN, False,
+                   advanced=False,
+                   longDescription="Enable remote desktop access by installing GNOME desktop and VNC server.")
                    
 # Optional ephemeral blockstore
 pc.defineParameter("tempFileSystemSize", "Temporary Filesystem Size",
@@ -142,7 +154,8 @@ for name in nodeList:
         bs.placement = "any"
         pass
 
-    node.addService(pg.Execute(shell="bash", command="sudo /local/repository/post-boot.sh " + params.toolVersion + " >> /local/repository/output_log.txt"))
+    cmd = "sudo /local/repository/post-boot.sh {} {} {} >> /local/logs/output_log.txt 2>&1".format(params.workflow, params.toolVersion, params.remoteDesktop)
+    node.addService(pg.Execute(shell="bash", command=cmd))
 
     # Since we want to create network links to the FPGA, it has its own identity.
     fpga = request.RawPC("fpga-" + name)
